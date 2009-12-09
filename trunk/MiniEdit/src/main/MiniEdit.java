@@ -6,9 +6,16 @@ import static javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 
 import javax.swing.ImageIcon;
 import javax.swing.JCheckBoxMenuItem;
@@ -82,30 +89,91 @@ public class MiniEdit extends JFrame {
 		return menu;
 	}
 
+	private String convertStreamToString(InputStream is) {
+		BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+		StringBuilder sb = new StringBuilder();
+		try {
+			String line;
+			while ((line = reader.readLine()) != null) {
+				sb.append(line + "\n");
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				is.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		return sb.toString();
+	}
+
+	private InputStream convertStringToStream(String text) {
+		InputStream is = null;
+		try {
+			is = new ByteArrayInputStream(text.getBytes("UTF-8"));
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+		return is;
+	}
+
 	private class MenuHandler implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
 			String acao = ((JMenuItem) e.getSource()).getText();
 			// Abrir
 			if (acao.equals(sArquivo[1 * 3])) {
-				JFileChooser dialogo = new JFileChooser();
-				int resultado = dialogo.showOpenDialog(MiniEdit.this);
-				if (resultado == JFileChooser.APPROVE_OPTION) {
-					File arqEscolhido = dialogo.getSelectedFile();
+				JFileChooser openDialog = new JFileChooser();
+				int openResult = openDialog.showOpenDialog(MiniEdit.this);
+				if (openResult == JFileChooser.APPROVE_OPTION) {
+					File choosenFile = openDialog.getSelectedFile();
+					// converte arquivo em reader
 					BufferedReader br = null;
-					// abre arquivo
 					try {
-						br = new BufferedReader(new FileReader(arqEscolhido));
+						br = new BufferedReader(new FileReader(choosenFile));
 					} catch (FileNotFoundException ex) {
 						ex.printStackTrace();
 					}
-					/*taEditor
-					// 
+					// converte reader em string
+					taEditor.setText("");
 					try {
-						
-					}*/
-
-					// processamento do arquivo escolhido
-					taEditor.append("Arquivo: " + arqEscolhido.getName() + "\n");
+						String line;
+						while ((line = br.readLine()) != null) {
+							taEditor.append(line + "\n");
+						}
+						br.close();
+					} catch (Exception ex) {
+						ex.printStackTrace();
+					}
+				}
+			}
+			// Salvar como...
+			// TODO: dialogo de arquivo existente
+			else if (acao.equals(sArquivo[3 * 3])) {
+				JFileChooser saveAsDialog = new JFileChooser();
+				int saveAsResult = saveAsDialog.showSaveDialog(MiniEdit.this);
+				if (saveAsResult == JFileChooser.APPROVE_OPTION) {
+					File choosenFile = saveAsDialog.getSelectedFile();
+					// abre arquivo de saida
+					BufferedWriter bw = null;
+					try {
+						bw = new BufferedWriter(new FileWriter(choosenFile));
+					} catch (IOException ex) {
+						ex.printStackTrace();
+					}
+					// salva string no arquivo
+					InputStream is = convertStringToStream(taEditor.getText());
+					BufferedReader br = new BufferedReader(new InputStreamReader(is));
+					try {
+						String line;
+						while ((line = br.readLine()) != null) {
+							bw.write(line + "\r\n");
+						}
+						bw.close();
+					} catch (Exception ex) {
+						ex.printStackTrace();
+					}
 				}
 			}
 			// Sair
@@ -118,4 +186,5 @@ public class MiniEdit extends JFrame {
 			}
 		}
 	}
+
 }
