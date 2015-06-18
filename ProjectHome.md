@@ -1,0 +1,1 @@
+MiniEdit is a very light text editor.
